@@ -9,19 +9,39 @@ dotenv.config();
 connectDB();
 
 const app = express();
-app.use(cors());
+
+// ✅ Configure CORS to allow Vercel frontend and include credentials
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://vasa-eight.vercel.app',
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true, // Important if sending cookies or Authorization headers
+}));
+
+// Middleware
 app.use(bodyParser.json());
 
+// Routes
 app.use('/api/auth', authRoutes);
+
 app.get('/', (req, res) => {
-    res.send('Welcome to the Client Management API');
+  res.send('Welcome to the Client Management API');
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something went wrong!' });
 });
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ error: 'Something went wrong!' });
-});
