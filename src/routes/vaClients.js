@@ -5,8 +5,8 @@ import {
   getVaClients,
   updateVaClient,
   deleteVaClient
-} from '../controllers/vaClients.js';
-import { protect } from '../middleware/auth.js';
+} from '../controllers/vaClientController.js';
+import  protect  from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 

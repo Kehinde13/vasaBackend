@@ -1,5 +1,4 @@
 import jwt from 'jsonwebtoken';
-import Client from '../models/client.js';
 
 const protect = async (req, res, next) => {
     let token;
@@ -12,7 +11,7 @@ const protect = async (req, res, next) => {
             token = req.headers.authorization.split(' ')[1];
 
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            req.client = await Client.findById(decoded.id).select('-password');
+            req.user = decoded
             next();
         } catch (err) {
             console.error(err);
@@ -23,4 +22,4 @@ const protect = async (req, res, next) => {
     }
 };
 
-export default protect;
+export default protect; 
