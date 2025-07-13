@@ -1,10 +1,12 @@
 // controllers/vaClients.js
 import VaClient from '../models/vaClient.js';
 
-// Create new VA client
 export const createVaClient = async (req, res) => {
   try {
-    const newClient = new VaClient({ ...req.body });
+    const newClient = new VaClient({
+      ...req.body,
+      owner: req.user.id
+    });
     const savedClient = await newClient.save();
     res.status(201).json(savedClient);
   } catch (err) {
@@ -12,34 +14,36 @@ export const createVaClient = async (req, res) => {
   }
 };
 
-// Get all VA clients
 export const getVaClients = async (req, res) => {
   try {
-    const clients = await VaClient.find();
+    const clients = await VaClient.find({ owner: req.user.id });
     res.status(200).json(clients);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// Update client
 export const updateVaClient = async (req, res) => {
   try {
-    const updatedClient = await VaClient.findByIdAndUpdate(
-      req.params.id,
-      { ...req.body },
+    const updated = await VaClient.findOneAndUpdate(
+      { _id: req.params.id, owner: req.user.id },
+      req.body,
       { new: true }
     );
-    res.status(200).json(updatedClient);
+    if (!updated) return res.status(403).json({ error: 'Forbidden' });
+    res.status(200).json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// Delete client
 export const deleteVaClient = async (req, res) => {
   try {
-    await VaClient.findByIdAndDelete(req.params.id);
+    const deleted = await VaClient.findOneAndDelete({
+      _id: req.params.id,
+      owner: req.user.id
+    });
+    if (!deleted) return res.status(403).json({ error: 'Forbidden' });
     res.status(204).end();
   } catch (err) {
     res.status(500).json({ error: err.message });

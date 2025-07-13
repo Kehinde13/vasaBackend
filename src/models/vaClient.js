@@ -12,7 +12,7 @@ const vaClientSchema = new mongoose.Schema({
   projects: { type: String },
   preferences: { type: String },
   billing: { type: String },
-  owner: { type: mongoose.Schema.Types.ObjectId, ref: 'Client' }, // who owns this client
+  owner: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', required: true }, // who owns this client
   createdAt: { type: Date, default: Date.now }
 });
 
