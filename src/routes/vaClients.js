@@ -5,7 +5,7 @@ import {
   getVaClients,
   updateVaClient,
   deleteVaClient
-} from '../controllers/vaClients.js';
+} from '../controllers/vaClientController.js';
 
 const router = express.Router();
 
