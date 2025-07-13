@@ -5,9 +5,12 @@ import {
   getVaClients,
   updateVaClient,
   deleteVaClient
-} from '../controllers/vaClientController.js';
+} from '../controllers/vaClients.js';
+import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
+
+router.use(protect); // ✅ all routes below this will require auth
 
 router.post('/', createVaClient);
 router.get('/', getVaClients);
