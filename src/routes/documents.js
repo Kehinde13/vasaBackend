@@ -1,6 +1,6 @@
-// routes/documents.js
 import express from 'express';
 import {
+  upload,
   createDocument,
   getDocumentsByOwner,
   deleteDocument
@@ -8,7 +8,7 @@ import {
 
 const router = express.Router();
 
-router.post('/', createDocument);
+router.post('/', upload.single('file'), createDocument);
 router.get('/', getDocumentsByOwner);
 router.delete('/:id', deleteDocument);
 
