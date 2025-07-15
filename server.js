@@ -5,6 +5,8 @@ import dotenv from 'dotenv';
 import connectDB from './config/db.js';
 import authRoutes from './src/routes/clients.js';
 import vaClientRoutes from './src/routes/vaClients.js';
+import documentsRoutes from './src/routes/documents.js';
+
 
 dotenv.config();
 connectDB();
@@ -34,6 +36,7 @@ app.use(bodyParser.json());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/va-clients', vaClientRoutes);
+app.use('/api/documents', documentsRoutes);
 
 app.get('/', (req, res) => {
   res.send('Welcome to the Client Management API');
