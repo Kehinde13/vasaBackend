@@ -29,7 +29,7 @@ export const createInvoice = async (req, res) => {
 // Get invoices by owner
 export const getUserInvoices = async (req, res) => {
   try {
-    const userId = req.query.userId; 
+    const userId = req.user.id;
     const invoices = await Invoice.find({ createdBy: userId }).sort({ createdAt: -1 });
     res.status(200).json(invoices);
   } catch (err) {
