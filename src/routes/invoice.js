@@ -12,7 +12,7 @@ const router = express.Router();
 router.use(protect); // all routes require auth
 
 router.post('/', createInvoice);
-router.get('/', getUserInvoices);
+router.get('/:id', getUserInvoices);
 router.put('/:id', updateInvoice);
 router.delete('/:id', deleteInvoice);
 
