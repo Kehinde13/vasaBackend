@@ -1,7 +1,7 @@
 import express from 'express';
 import {
   createInvoice,
-  getInvoices,
+  getUserInvoices,
   updateInvoice,
   deleteInvoice,
 } from '../controllers/invoiceController.js';
@@ -12,7 +12,7 @@ const router = express.Router();
 router.use(protect); // all routes require auth
 
 router.post('/', createInvoice);
-router.get('/', getInvoices);
+router.get('/', getUserInvoices);
 router.put('/:id', updateInvoice);
 router.delete('/:id', deleteInvoice);
 

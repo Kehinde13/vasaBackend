@@ -26,14 +26,14 @@ export const createInvoice = async (req, res) => {
   }
 };
 
-// GET ALL for the logged-in user
-export const getInvoices = async (req, res) => {
+// Get invoices by owner
+export const getUserInvoices = async (req, res) => {
   try {
-    const invoices = await Invoice.find({ owner: req.user.id }).sort({ createdAt: -1 });
-    res.json(invoices);
+    const userId = req.query.userId; 
+    const invoices = await Invoice.find({ createdBy: userId }).sort({ createdAt: -1 });
+    res.status(200).json(invoices);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to fetch invoices" });
+    res.status(500).json({ error: 'Failed to fetch invoices' });
   }
 };
 
