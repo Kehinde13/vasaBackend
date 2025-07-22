@@ -26,13 +26,14 @@ export const createInvoice = async (req, res) => {
   }
 };
 
-// Get invoices by owner
+// Get all invoices for the authenticated user
 export const getUserInvoices = async (req, res) => {
   try {
     const userId = req.user.id;
-    const invoices = await Invoice.find({ createdBy: userId }).sort({ createdAt: -1 });
+    const invoices = await Invoice.find({ owner: userId }).sort({ createdAt: -1 });
     res.status(200).json(invoices);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Failed to fetch invoices' });
   }
 };
