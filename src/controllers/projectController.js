@@ -69,17 +69,17 @@ export const updateTaskStatus = async (req, res) => {
   const { status } = req.body;
 
   try {
-    const updatedTask = await Task.findByIdAndUpdate(
+    const updatedProject = await Project.findByIdAndUpdate(
       id,
       { status },
       { new: true }
     );
 
-    if (!updatedTask) {
-      return res.status(404).json({ message: 'Task not found' });
+    if (!updatedProject) {
+      return res.status(404).json({ message: 'Project not found' });
     }
 
-    res.json(updatedTask);
+    res.json(updatedProject);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });
   }
