@@ -63,6 +63,29 @@ export const updateProject = async (req, res) => {
   }
 };
 
+// Update task status
+export const updateTaskStatus = async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  try {
+    const updatedTask = await Task.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    );
+
+    if (!updatedTask) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    res.json(updatedTask);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+
 // Delete a project
 export const deleteProject = async (req, res) => {
   try {
