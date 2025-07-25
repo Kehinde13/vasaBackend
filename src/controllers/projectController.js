@@ -12,33 +12,30 @@ export const getProjects = async (req, res) => {
   }
 };
 
-// Create a new project
 export const createProject = async (req, res) => {
   const { title, description, client, status, priority, dueDate, tags } = req.body;
 
-  if (!title) {
-    return res.status(400).json({ error: 'Title is required' });
-  }
-
-  if (!mongoose.Types.ObjectId.isValid(client)) {
-    return res.status(400).json({ error: 'Invalid client ID' });
+  if (!title || !client) {
+    return res.status(400).json({ error: 'Title and client are required' });
   }
 
   try {
-    const clientExists = await Client.findById(client);
-    if (!clientExists) {
+    // 🔍 Fetch the client to get the name
+    const clientDoc = await Client.findById(client);
+    if (!clientDoc) {
       return res.status(404).json({ error: 'Client not found' });
     }
 
     const newProject = new Project({
       title,
       description,
-      client,
+      client: clientDoc._id, // still store the ID
+      clientName: clientDoc.name, // ✅ store name as well
       status,
       priority,
       dueDate,
       tags,
-      owner: req.user.id, // logged-in VA
+      owner: req.user.id,
     });
 
     const savedProject = await newProject.save();

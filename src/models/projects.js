@@ -6,6 +6,7 @@ const projectSchema = new mongoose.Schema({
   description: String,
   owner: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', required: true }, // VA owner
   client: { type: mongoose.Schema.Types.ObjectId, ref: 'Client' }, // optional link to a client
+  clientName: {type: String,},
   status: {
     type: String,
     enum: ['To Do', 'In Progress', 'On Hold', 'Done'],
