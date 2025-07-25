@@ -3,7 +3,9 @@ import Project from '../models/projects.js';
 // Get all projects for the logged-in VA (owner)
 export const getProjects = async (req, res) => {
   try {
-    const projects = await Project.find({ owner: req.user.id }).sort({ createdAt: -1 });
+    const projects = await Project.find({ owner: req.user.id })
+    .populate('client', 'name')
+    .sort({ createdAt: -1 });
     res.status(200).json(projects);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch projects' });
