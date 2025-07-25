@@ -1,4 +1,5 @@
 import Project from '../models/projects.js';
+import Client from '../models/clients.js';
 
 // Get all projects for the logged-in VA (owner)
 export const getProjects = async (req, res) => {
