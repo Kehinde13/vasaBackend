@@ -3,19 +3,19 @@ import bodyParser from 'body-parser';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/db.js';
+
 import authRoutes from './src/routes/clients.js';
 import vaClientRoutes from './src/routes/vaClients.js';
 import documentsRoutes from './src/routes/documents.js';
 import invoiceRoutes from './src/routes/invoice.js';
 import projectRoutes from './src/routes/projects.js';
 
-
 dotenv.config();
 connectDB();
 
 const app = express();
 
-// ✅ Configure CORS to allow Vercel frontend and include credentials
+// ✅ Move CORS config to the top, before any middleware
 const allowedOrigins = [
   'http://localhost:3000',
   'https://vasa-eight.vercel.app',
@@ -29,28 +29,33 @@ app.use(cors({
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true, // Important if sending cookies or Authorization headers
+  credentials: true, 
 }));
 
-// Middleware
+// ✅ Allow preflight (OPTIONS) requests for all routes
+app.options('*', cors());
+
+// ✅ Then use bodyParser
 app.use(bodyParser.json());
 
-// Routes
+// ✅ Your API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/va-clients', vaClientRoutes);
 app.use('/api/documents', documentsRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/projects', projectRoutes);
 
+// ✅ Root route
 app.get('/', (req, res) => {
   res.send('Welcome to the Client Management API');
 });
 
-// Error handling middleware
+// ✅ Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
+// ✅ Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
