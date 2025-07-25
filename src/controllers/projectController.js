@@ -20,7 +20,16 @@ export const createProject = async (req, res) => {
     return res.status(400).json({ error: 'Title is required' });
   }
 
+  if (!mongoose.Types.ObjectId.isValid(client)) {
+    return res.status(400).json({ error: 'Invalid client ID' });
+  }
+
   try {
+    const clientExists = await Client.findById(client);
+    if (!clientExists) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+
     const newProject = new Project({
       title,
       description,
@@ -35,6 +44,7 @@ export const createProject = async (req, res) => {
     const savedProject = await newProject.save();
     res.status(201).json(savedProject);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Failed to create project' });
   }
 };
