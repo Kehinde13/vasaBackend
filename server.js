@@ -9,6 +9,7 @@ import vaClientRoutes from './src/routes/vaClients.js';
 import documentsRoutes from './src/routes/documents.js';
 import invoiceRoutes from './src/routes/invoice.js';
 import projectRoutes from './src/routes/projects.js';
+import dailyPlanRoutes from './src/routes/dailyPlan.js';
 
 dotenv.config();
 connectDB();
@@ -44,6 +45,8 @@ app.use('/api/va-clients', vaClientRoutes);
 app.use('/api/documents', documentsRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/projects', projectRoutes);
+app.use('/api/daily-plans', dailyPlanRoutes);
+
 
 // ✅ Root route
 app.get('/', (req, res) => {
