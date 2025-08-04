@@ -81,3 +81,41 @@ export const loginClient = async (req, res) => {
 export const logoutClient = (req, res) => {
   res.status(200).json({ message: 'Logout successful.' });
 };
+
+/**
+ * Get logged-in client profile
+ */
+export const getProfile = async (req, res) => {
+  try {
+    const client = await Client.findById(req.user.id).select("-password");
+    if (!client) return res.status(404).json({ error: "Client not found" });
+    res.json(client);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch profile" });
+  }
+};
+
+/**
+ * Update client profile
+ */
+export const updateProfile = async (req, res) => {
+  try {
+    const updates = req.body;
+
+    if (updates.password) {
+      updates.password = await bcrypt.hash(updates.password, 10);
+    }
+
+    const updatedClient = await Client.findByIdAndUpdate(
+      req.user.id,
+      { $set: updates },
+      { new: true, runValidators: true }
+    ).select("-password");
+
+    res.json(updatedClient);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update profile" });
+  }
+};
