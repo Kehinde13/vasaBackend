@@ -1,6 +1,5 @@
 import express from 'express';
-import { registerClient, loginClient, getProfile, updateProfile } from '../controllers/clientController.js';
-import validateClient from '../middleware/validateClient.js';
+import { getProfile, updateProfile } from '../controllers/clientController.js';
 import protect from '../middleware/authMiddleware.js';
 import multer from "multer";
 import path from "path";
@@ -17,8 +16,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
     
-router.post('/register', validateClient, registerClient);
-router.post('/login', loginClient);
+
 router.get("/me", protect, getProfile);
 router.put("/update", protect, updateProfile);
 
