@@ -1,7 +1,7 @@
 import express from 'express';
 import { getProfile, updateProfile } from '../controllers/clientController.js';
 import protect from '../middleware/authMiddleware.js';
-import Client from '../models/Client.js'; 
+import Client from '../models/clients.js'; 
 import { upload } from "../middleware/upload.js";
 
 const router = express.Router();
