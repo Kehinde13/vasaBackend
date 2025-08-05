@@ -1,21 +1,12 @@
 import express from 'express';
 import { getProfile, updateProfile } from '../controllers/clientController.js';
 import protect from '../middleware/authMiddleware.js';
-import multer from "multer";
-import path from "path";
+import Client from '../models/Client.js'; 
+import { upload } from "../middleware/upload.js";
 
 const router = express.Router();
 
-// File upload setup
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads/profileImages"),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${req.user.id}${ext}`);
-  }
-});
-const upload = multer({ storage });
-    
+  
 
 router.get("/me", protect, getProfile);
 router.put("/update", protect, updateProfile);

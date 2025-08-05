@@ -3,6 +3,7 @@ import bodyParser from 'body-parser';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/db.js';
+import path from 'path';
 
 import authRoutes from './src/routes/authRoutes.js';
 import clientRoute from './src/routes/clients.js';
@@ -48,6 +49,7 @@ app.use('/api/documents', documentsRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/daily-plans', dailyPlanRoutes);
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 
 // ✅ Root route
