@@ -21,7 +21,7 @@ export const createProject = async (req, res) => {
   }
 
   try {
-    // 🔍 Fetch the client to get the name
+    // ✅ Fetch the client by ID
     const clientDoc = await Client.findById(client);
     if (!clientDoc) {
       return res.status(404).json({ error: 'Client not found' });
@@ -30,8 +30,8 @@ export const createProject = async (req, res) => {
     const newProject = new Project({
       title,
       description,
-      client: clientDoc._id, // still store the ID
-      clientName: clientDoc.name, // ✅ store name as well
+      client: clientDoc._id,          // store the ObjectId
+      clientName: clientDoc.fullName, // ✅ use fullName instead of name
       status,
       priority,
       dueDate,
@@ -46,6 +46,7 @@ export const createProject = async (req, res) => {
     res.status(500).json({ error: 'Failed to create project' });
   }
 };
+
 
 // Update a project
 export const updateProject = async (req, res) => {
