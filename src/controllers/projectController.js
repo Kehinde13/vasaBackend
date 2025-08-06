@@ -1,5 +1,5 @@
 import Project from '../models/projects.js';
-import Client from '../models/clients.js';
+import VaClient from '../models/vaClient.js';
 
 // Get all projects for the logged-in VA (owner)
 export const getProjects = async (req, res) => {
@@ -21,8 +21,8 @@ export const createProject = async (req, res) => {
   }
 
   try {
-    // ✅ Fetch the client by ID
-    const clientDoc = await Client.findById(client);
+    // ✅ Fetch the VA Client by ID
+    const clientDoc = await VaClient.findById(client);
     if (!clientDoc) {
       return res.status(404).json({ error: 'Client not found' });
     }
@@ -30,8 +30,8 @@ export const createProject = async (req, res) => {
     const newProject = new Project({
       title,
       description,
-      client: clientDoc._id,          // store the ObjectId
-      clientName: clientDoc.fullName, // ✅ use fullName instead of name
+      client: clientDoc._id,   // store the ObjectId
+      clientName: clientDoc.name, // ✅ use the 'name' field from VaClient
       status,
       priority,
       dueDate,
@@ -42,11 +42,10 @@ export const createProject = async (req, res) => {
     const savedProject = await newProject.save();
     res.status(201).json(savedProject);
   } catch (error) {
-    console.error(error);
+    console.error('Create project error:', error);
     res.status(500).json({ error: 'Failed to create project' });
   }
 };
-
 
 // Update a project
 export const updateProject = async (req, res) => {
@@ -54,14 +53,19 @@ export const updateProject = async (req, res) => {
 
   try {
     const project = await Project.findOne({ _id: req.params.id, owner: req.user.id });
+    if (!project) return res.status(404).json({ error: 'Project not found' });
 
-    if (!project) {
-      return res.status(404).json({ error: 'Project not found' });
+    // ✅ Update client if provided
+    if (client) {
+      const clientDoc = await VaClient.findById(client);
+      if (!clientDoc) return res.status(404).json({ error: 'Client not found' });
+
+      project.client = clientDoc._id;
+      project.clientName = clientDoc.name;
     }
 
     project.title = title ?? project.title;
     project.description = description ?? project.description;
-    project.client = client ?? project.client;
     project.status = status ?? project.status;
     project.priority = priority ?? project.priority;
     project.dueDate = dueDate ?? project.dueDate;
@@ -70,6 +74,7 @@ export const updateProject = async (req, res) => {
     const updatedProject = await project.save();
     res.status(200).json(updatedProject);
   } catch (error) {
+    console.error('Update project error:', error);
     res.status(500).json({ error: 'Failed to update project' });
   }
 };
