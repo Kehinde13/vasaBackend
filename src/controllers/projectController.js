@@ -4,11 +4,24 @@ import VaClient from '../models/vaClient.js';
 // Get all projects for the logged-in VA (owner)
 export const getProjects = async (req, res) => {
   try {
+    // ✅ Fetch all projects for the logged-in user
     const projects = await Project.find({ owner: req.user.id })
-    .populate('client', 'name')
-    .sort({ createdAt: -1 });
-    res.status(200).json(projects);
+      .populate({ 
+        path: 'client', 
+        model: 'VaClient',  // ✅ ensure we populate from VaClient
+        select: 'name'      // only get the name
+      })
+      .sort({ createdAt: -1 });
+
+    // ✅ Transform response to always include clientName
+    const result = projects.map((project) => ({
+      ...project.toObject(),
+      clientName: project.client?.name || 'Unknown Client',
+    }));
+
+    res.status(200).json(result);
   } catch (error) {
+    console.error('Get projects error:', error);
     res.status(500).json({ error: 'Failed to fetch projects' });
   }
 };
