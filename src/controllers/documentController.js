@@ -1,26 +1,95 @@
 import Document from '../models/document.js';
+import { v2 as cloudinary } from 'cloudinary';
 import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
 
-// Configure multer
-const storage = multer.diskStorage({
-  destination: './uploads/',
-  filename: (req, file, cb) =>
-    cb(null, `${Date.now()}-${file.originalname}`)
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
-export const upload = multer({ storage });
 
-// Create document with file upload
+// Use memory storage (files stored in memory temporarily)
+const storage = multer.memoryStorage();
+export const upload = multer({ 
+  storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  }
+});
+
+// Helper function to upload to Cloudinary
+const uploadToCloudinary = (fileBuffer, fileName) => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        resource_type: 'auto', // Automatically detect file type
+        folder: 'documents', // Organize files in a folder
+        public_id: `doc_${Date.now()}_${fileName.split('.')[0]}`,
+        use_filename: true,
+        unique_filename: true,
+      },
+      (error, result) => {
+        if (error) {
+          console.error('Cloudinary upload error:', error);
+          reject(error);
+        } else {
+          resolve(result);
+        }
+      }
+    );
+    uploadStream.end(fileBuffer);
+  });
+};
+
+// Create document with Cloudinary upload
 export const createDocument = async (req, res) => {
   const { title, content, category, type, tags, owner } = req.body;
   const file = req.file;
+
+  console.log('=== CREATE DOCUMENT WITH CLOUDINARY ===');
+  console.log('Request body:', { title, category, type, owner });
+  console.log('File info:', file ? {
+    originalname: file.originalname,
+    mimetype: file.mimetype,
+    size: file.size,
+  } : 'No file');
 
   if (!title || !owner) {
     return res.status(400).json({ message: 'Title and owner are required.' });
   }
 
-  const fileUrl = file ? `/uploads/${file.filename}` : undefined;
+  let fileUrl = undefined;
+  let cloudinaryId = undefined;
+  let fileName = undefined;
+  let fileSize = undefined;
+  let mimeType = undefined;
+
+  // Upload file to Cloudinary if present
+  if (file) {
+    try {
+      console.log('Uploading to Cloudinary...');
+      const uploadResult = await uploadToCloudinary(file.buffer, file.originalname);
+      
+      fileUrl = uploadResult.secure_url;
+      cloudinaryId = uploadResult.public_id;
+      fileName = file.originalname;
+      fileSize = file.size;
+      mimeType = file.mimetype;
+      
+      console.log('Cloudinary upload successful:', {
+        url: fileUrl,
+        publicId: cloudinaryId,
+        size: uploadResult.bytes
+      });
+    } catch (uploadError) {
+      console.error('Cloudinary upload failed:', uploadError);
+      return res.status(500).json({ 
+        message: 'File upload failed.',
+        error: uploadError.message 
+      });
+    }
+  }
 
   try {
     const newDoc = await Document.create({
@@ -29,11 +98,32 @@ export const createDocument = async (req, res) => {
       content,
       category,
       fileUrl,
+      cloudinaryId,
+      fileName,
+      fileSize,
+      mimeType,
       type: type || 'upload',
       tags: tags ? JSON.parse(tags) : []
     });
+    
+    console.log('Document created successfully:', {
+      id: newDoc._id,
+      title: newDoc.title,
+      hasCloudinaryUrl: !!newDoc.fileUrl
+    });
+    
     res.status(201).json(newDoc);
   } catch (err) {
+    // If document creation fails but file was uploaded, clean up Cloudinary
+    if (cloudinaryId) {
+      try {
+        await cloudinary.uploader.destroy(cloudinaryId);
+        console.log('Cleaned up Cloudinary file after DB error');
+      } catch (cleanupError) {
+        console.error('Failed to cleanup Cloudinary file:', cleanupError);
+      }
+    }
+    
     console.error('Error creating document:', err);
     res.status(500).json({ message: 'Failed to create document.' });
   }
@@ -43,6 +133,7 @@ export const createDocument = async (req, res) => {
 export const getDocumentsByOwner = async (req, res) => {
   const { owner } = req.query;
   if (!owner) return res.status(400).json({ message: 'Missing owner ID.' });
+  
   try {
     const docs = await Document.find({ owner }).sort({ createdAt: -1 });
     res.json(docs);
@@ -52,7 +143,7 @@ export const getDocumentsByOwner = async (req, res) => {
   }
 };
 
-// Get single document by ID (for preview metadata)
+// Get single document by ID
 export const getDocumentById = async (req, res) => {
   try {
     const document = await Document.findById(req.params.id);
@@ -66,14 +157,23 @@ export const getDocumentById = async (req, res) => {
   }
 };
 
-// Get document file for preview/download
+// Get document file from Cloudinary
 export const getDocumentFile = async (req, res) => {
   try {
+    console.log('=== GET DOCUMENT FILE ===');
+    console.log('Document ID:', req.params.id);
+    
     const document = await Document.findById(req.params.id);
     
     if (!document) {
       return res.status(404).json({ message: 'Document not found.' });
     }
+
+    console.log('Document found:', {
+      title: document.title,
+      hasFileUrl: !!document.fileUrl,
+      hasContent: !!document.content
+    });
 
     // If no file URL, return just the content
     if (!document.fileUrl) {
@@ -84,75 +184,34 @@ export const getDocumentFile = async (req, res) => {
       });
     }
 
-    // Construct the full file path
-    // Remove leading slash from fileUrl if present to avoid path issues
-    const cleanFileUrl = document.fileUrl.startsWith('/') 
-      ? document.fileUrl.substring(1) 
-      : document.fileUrl;
-    const filePath = path.join(process.cwd(), cleanFileUrl);
+    // For Cloudinary, we can either redirect or proxy the file
+    console.log('Redirecting to Cloudinary URL:', document.fileUrl);
     
-    // Check if file exists
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ message: 'File not found on server.' });
+    // Option 1: Simple redirect (recommended)
+    res.redirect(document.fileUrl);
+    
+    // Option 2: Proxy the file (uncomment if you need custom headers)
+    /*
+    try {
+      const response = await fetch(document.fileUrl);
+      const buffer = await response.arrayBuffer();
+      
+      res.setHeader('Content-Type', document.mimeType || 'application/octet-stream');
+      res.setHeader('Content-Disposition', `inline; filename="${document.fileName}"`);
+      res.send(Buffer.from(buffer));
+    } catch (fetchError) {
+      console.error('Error fetching from Cloudinary:', fetchError);
+      res.status(500).json({ message: 'Error fetching file from storage.' });
     }
-
-    // Get file stats
-    const stats = fs.statSync(filePath);
-    const fileExtension = path.extname(filePath).toLowerCase();
+    */
     
-    // Set appropriate content type based on file extension
-    let contentType = 'application/octet-stream'; // default
-    switch (fileExtension) {
-      case '.pdf':
-        contentType = 'application/pdf';
-        break;
-      case '.doc':
-        contentType = 'application/msword';
-        break;
-      case '.docx':
-        contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-        break;
-      case '.xls':
-        contentType = 'application/vnd.ms-excel';
-        break;
-      case '.xlsx':
-        contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-        break;
-      case '.txt':
-        contentType = 'text/plain';
-        break;
-      case '.png':
-        contentType = 'image/png';
-        break;
-      case '.jpg':
-      case '.jpeg':
-        contentType = 'image/jpeg';
-        break;
-    }
-
-    // Set headers
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Content-Length', stats.size);
-    res.setHeader('Content-Disposition', `inline; filename="${document.title}${fileExtension}"`);
-    
-    // Stream the file
-    const fileStream = fs.createReadStream(filePath);
-    fileStream.pipe(res);
-    
-    fileStream.on('error', (err) => {
-      console.error('File stream error:', err);
-      if (!res.headersSent) {
-        res.status(500).json({ message: 'Error reading file.' });
-      }
-    });
-
   } catch (err) {
     console.error('Error fetching document file:', err);
     res.status(500).json({ message: 'Failed to fetch document file.' });
   }
 };
 
-// Optional: Get document content only (for text preview)
+// Get document content only
 export const getDocumentContent = async (req, res) => {
   try {
     const document = await Document.findById(req.params.id);
@@ -168,7 +227,8 @@ export const getDocumentContent = async (req, res) => {
       category: document.category,
       type: document.type,
       hasFile: !!document.fileUrl,
-      fileUrl: document.fileUrl
+      fileUrl: document.fileUrl,
+      fileName: document.fileName
     });
   } catch (err) {
     console.error('Error fetching document content:', err);
@@ -176,7 +236,7 @@ export const getDocumentContent = async (req, res) => {
   }
 };
 
-// Delete a document
+// Delete document and Cloudinary file
 export const deleteDocument = async (req, res) => {
   try {
     const document = await Document.findById(req.params.id);
@@ -185,22 +245,22 @@ export const deleteDocument = async (req, res) => {
       return res.status(404).json({ message: 'Document not found.' });
     }
 
-    // Delete the physical file if it exists
-    if (document.fileUrl) {
-      const filePath = path.join(process.cwd(), document.fileUrl);
-      if (fs.existsSync(filePath)) {
-        try {
-          fs.unlinkSync(filePath);
-          console.log(`File deleted: ${filePath}`);
-        } catch (fileErr) {
-          console.error('Error deleting file:', fileErr);
-          // Continue with document deletion even if file deletion fails
-        }
+    // Delete from Cloudinary if it exists
+    if (document.cloudinaryId) {
+      try {
+        console.log('Deleting from Cloudinary:', document.cloudinaryId);
+        await cloudinary.uploader.destroy(document.cloudinaryId);
+        console.log(`File deleted from Cloudinary: ${document.cloudinaryId}`);
+      } catch (cloudinaryError) {
+        console.error('Error deleting from Cloudinary:', cloudinaryError);
+        // Continue with document deletion even if Cloudinary deletion fails
       }
     }
 
     // Delete the document from database
     await Document.findByIdAndDelete(req.params.id);
+    
+    console.log('Document deleted successfully:', req.params.id);
     res.json({ message: 'Document and associated file deleted successfully.' });
   } catch (err) {
     console.error('Delete error:', err);

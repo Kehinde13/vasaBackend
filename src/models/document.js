@@ -1,17 +1,18 @@
-// models/Document.js
+// models/document.js
 import mongoose from 'mongoose';
 
 const documentSchema = new mongoose.Schema({
   title: { type: String, required: true },
-  owner: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', required: true }, // VA
-
+  owner: { type: String, required: true },
   content: String,
   category: String,
-  fileUrl: String, // for uploads
-  type: { type: String, default: 'upload' },
+  type: String,
   tags: [String],
-  createdAt: { type: Date, default: Date.now }
-});
+  fileUrl: String, // Cloudinary URL
+  cloudinaryId: String, // Cloudinary public_id for deletion
+  fileName: String, // Original filename
+  fileSize: Number,
+  mimeType: String,
+}, { timestamps: true });
 
-const Document = mongoose.model('Document', documentSchema);
-export default Document;
+export default mongoose.model('Document', documentSchema);
