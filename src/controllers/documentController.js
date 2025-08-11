@@ -85,7 +85,11 @@ export const getDocumentFile = async (req, res) => {
     }
 
     // Construct the full file path
-    const filePath = path.join(process.cwd(), document.fileUrl);
+    // Remove leading slash from fileUrl if present to avoid path issues
+    const cleanFileUrl = document.fileUrl.startsWith('/') 
+      ? document.fileUrl.substring(1) 
+      : document.fileUrl;
+    const filePath = path.join(process.cwd(), cleanFileUrl);
     
     // Check if file exists
     if (!fs.existsSync(filePath)) {
